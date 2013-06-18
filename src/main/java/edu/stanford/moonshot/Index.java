@@ -62,89 +62,41 @@ import java.util.*;
  *  Calling TDBFactory is the only place TDB-specific code is needed.
  */
 
-public class App
+public class Index
 {
-    public static void runApp()
+    public static void main(String[] args)
     {
-
-        // Load a TDB backed model
-
+        // Direct way: Make a TDB-back Jena model in the named directory.
         String directory = "yago-jena" ;
         Model model = TDBFactory.createModel(directory);
-
-        // Open the LARQ index
 
         try {
             IndexWriter indexWriter = IndexWriterFactory.create(FSDirectory.open(new File(directory+"/larq")));
             IndexBuilderString larqBuilder = new IndexBuilderString(indexWriter);
-            IndexLARQ index = larqBuilder.getIndex();
-            larqBuilder.closeWriter();
-            LARQ.setDefaultIndex(index);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-
-        System.out.println("Preparing query");
-
-        String s = prepareQuery("SELECT DISTINCT * WHERE { ?z pf:textMatch '+Obama+Napoleon' . ?x rdfs:label ?z }");
-        
-        Query query = QueryFactory.create(s) ;
-        
-        // Create a single execution of this query, apply to a model
-        // which is wrapped up as a Dataset
-        
-        QueryExecution qexec = QueryExecutionFactory.create(query, model) ;
-
-        System.out.println("Titles: ") ;
-        
-        try {
-
-            // Assumption: it's a SELECT query.
-
-            ResultSet rs = qexec.execSelect() ;
-
-            // The order of results is undefined. 
-
-            while (rs.hasNext())
-            {
-                QuerySolution rb = rs.nextSolution() ;
-                System.out.println(rb);
-
-                // Get title - variable names do not include the '?' (or '$')
-
-                RDFNode x = rb.get("x") ;
-                RDFNode z = rb.get("z") ;
-                
-                // Check the type of the result value
-
-                if (x.isLiteral() || z.isLiteral())
-                {
-
-                    //Literal titleStr = (Literal)x  ;
-
+            StmtIterator sIter = model.listStatements();
+            for (int i = 0; sIter.hasNext(); i++) {
+                larqBuilder.indexStatement(sIter.next());
+                System.out.print("Indexed: "+i+"\r");
+                if (i % 100000 == 99999) {
+                    indexWriter.commit();
                 }
+            }
+
+            IndexLARQ index = larqBuilder.getIndex();
+
+            larqBuilder.closeWriter();
+
+            LARQ.setDefaultIndex(index);
+
+            NodeIterator nIter = index.searchModelByIndex("+Obama");
+            while (nIter.hasNext()) {
+                Literal lit = (Literal)nIter.nextNode();
+                System.out.println(lit);
             }
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-        finally
-        {
-
-            // QueryExecution objects should be closed to free any system resources 
-
-            qexec.close() ;
-        }
-    }
-
-    private static String prepareQuery(String query) {
-        return "PREFIX : <http://yago-knowledge.org/resource/>"+
-            " PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
-            " PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
-            " PREFIX pf: <http://jena.hpl.hp.com/ARQ/property#> "+
-            query;
     }
 }
 

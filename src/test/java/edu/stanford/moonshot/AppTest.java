@@ -28,16 +28,17 @@ public class AppTest
         return new TestSuite( AppTest.class );
     }
 
+    private static final boolean runTests = false;
+
     /**
      * Rigourous Test :-)
      */
     public void testApp()
     {
-        App.runApp();
+        if (runTests) App.runApp();
     }
 
     public void testNews() {
-        // Too slow to run generally
-        News.runApp();
+        if (runTests) News.runApp();
     }
 }
