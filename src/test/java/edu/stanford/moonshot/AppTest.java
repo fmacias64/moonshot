@@ -33,12 +33,9 @@ public class AppTest
     /**
      * Rigourous Test :-)
      */
-    public void testApp()
+    public void testEngine()
     {
-        if (runTests) App.runApp();
-    }
-
-    public void testNews() {
-        if (runTests) News.runApp();
+        //Engine eng = new Engine();
+        //eng.test();
     }
 }

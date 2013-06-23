@@ -51,7 +51,6 @@ import org.apache.lucene.index.IndexWriter;
 
 import java.io.*;
 import java.util.*;
-import java.util.regex.*;
 
 /** Example of creating a TDB-backed model.
  *  The preferred way is to create a dataset then get the mode required from the dataset.
@@ -63,54 +62,22 @@ import java.util.regex.*;
  *  Calling TDBFactory is the only place TDB-specific code is needed.
  */
 
-public class Index
+public class Import
 {
     public static void main(String[] args)
     {
         // Direct way: Make a TDB-back Jena model in the named directory.
+
         String directory = "yago-jena" ;
         Model model = TDBFactory.createModel(directory);
 
-        try {
-            IndexWriter indexWriter = IndexWriterFactory.create(FSDirectory.open(new File(directory+"/larq")));
-            IndexBuilderString larqBuilder = new IndexBuilderString(indexWriter);
-            StmtIterator sIter = model.listStatements();
+        // Read in all the new TTL
 
-            // Only index certain kinds of relationships
+        model.read("yagoWikipediaInfo.ttl","TTL");
 
-            int saved = 0;
-            Pattern labelPattern = Pattern.compile("label|prefLabel|isPreferredMeaningOf|hasGivenName|hasFamilyName|hasGloss");
+        // Force the updates to disk
 
-            for (int i = 0; sIter.hasNext(); i++) {
-                Statement stmt = sIter.next();
-                System.out.print("Indexed: "+i+" Saved: "+saved+"\r");
-                String stmtName = stmt.getPredicate().getLocalName();
-                Matcher matcher = labelPattern.matcher(stmtName);
-                if (matcher.matches()) {
-                    larqBuilder.indexStatement(stmt);
-                    saved++;
-                    if (saved % 10000 == 9999) {
-                        indexWriter.commit();
-                        larqBuilder.flushWriter();
-                    }
-                }
-            }
-
-            IndexLARQ index = larqBuilder.getIndex();
-
-            larqBuilder.closeWriter();
-
-            LARQ.setDefaultIndex(index);
-
-            NodeIterator nIter = index.searchModelByIndex("+Obama");
-            while (nIter.hasNext()) {
-                Literal lit = (Literal)nIter.nextNode();
-                System.out.println(lit);
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+        model.close();
     }
 }
 
